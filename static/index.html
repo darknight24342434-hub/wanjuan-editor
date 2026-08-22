@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e5ded5">
+  <title>萬卷文庫｜本機文檔工作台</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#editor">跳到文件編輯器</a>
+
+  <header class="topbar">
+    <div class="brand-block">
+      <span class="seal" aria-hidden="true">百</span>
+      <div>
+        <h1>萬卷文庫</h1>
+        <p>文件為本，卡片為術，人物執筆審判</p>
+      </div>
+    </div>
+    <div class="topbar-status">
+      <button id="library-toggle" class="button secondary utility-button" type="button" aria-expanded="false">文件與資產</button>
+      <button id="history-toggle" class="button secondary utility-button" type="button" aria-expanded="false">版本紀錄</button>
+      <div class="mode-switch" role="tablist" aria-label="工作模式">
+        <button id="news-mode" class="mode-button active" type="button" role="tab" aria-selected="true">新聞審稿</button>
+        <button id="writing-mode" class="mode-button" type="button" role="tab" aria-selected="false">寫作助手</button>
+        <button id="media-mode" class="mode-button" type="button" role="tab" aria-selected="false">影音切片</button>
+      </div>
+      <span id="runtime-status" class="status-pill status-waiting">正在讀取卡庫</span>
+      <span id="save-status" class="save-state" aria-live="polite">尚未修改</span>
+    </div>
+  </header>
+
+  <nav id="news-progress" class="workflow-strip" aria-label="新聞審稿進度">
+    <span class="workflow-label">新聞流程</span>
+    <ol>
+      <li class="progress-step active" data-stage="intake"><span>1</span>收稿</li>
+      <li class="progress-step" data-stage="writer"><span>2</span>寫手</li>
+      <li class="progress-step" data-stage="editor"><span>3</span>編輯</li>
+      <li class="progress-step" data-stage="chief"><span>4</span>總編</li>
+      <li class="progress-step" data-stage="finalize"><span>5</span>人工定稿</li>
+    </ol>
+    <span id="approval-status" class="approval-badge">草稿・未核准</span>
+  </nav>
+
+  <button id="library-backdrop" class="drawer-backdrop" type="button" aria-label="關閉文件與資產抽屜" hidden></button>
+
+  <main class="workspace">
+    <section id="media-workspace" class="media-workspace" aria-labelledby="media-title" hidden>
+      <header class="media-hero">
+        <div>
+          <span class="eyebrow">影音切片</span>
+          <h2 id="media-title">從原片建立可追溯的短片</h2>
+          <p>每一步都由你親自啟動；系統不會自動串跑，也不會拿失敗結果冒充完成。</p>
+        </div>
+        <span id="media-file-status" class="status-pill status-waiting">尚未上傳</span>
+      </header>
+
+      <section class="media-panel media-upload-panel">
+        <label class="file-picker media-picker" for="media-upload">
+          <span>上傳影片或音訊</span>
+          <small>MP4、MOV、MKV、M4A、MP3、WAV；上限依 media_config.json，預設 3 GB</small>
+          <input id="media-upload" type="file" accept=".mp4,.mov,.mkv,.m4a,.mp3,.wav,video/mp4,video/quicktime,video/x-matroska,audio/mp4,audio/mpeg,audio/wav">
+        </label>
+        <div id="media-source-card" class="media-source-card empty-state" aria-live="polite">
+          <p>檔案會分塊串流落盤，不會整支載入伺服器記憶體。</p>
+        </div>
+      </section>
+
+      <section class="media-panel media-actions-panel" aria-label="影音處理步驟">
+        <div class="media-step">
+          <span class="media-step-number">一</span>
+          <div><strong>轉逐字稿</strong><small id="media-transcribe-status">等待上傳</small></div>
+          <button id="media-transcribe" class="button primary" type="button" disabled>轉逐字稿</button>
+        </div>
+        <div class="media-step">
+          <span class="media-step-number">二</span>
+          <div><strong>判斷精華</strong><small id="media-highlight-status">等待逐字稿</small></div>
+          <button id="media-highlight" class="button primary" type="button" disabled>判斷精華</button>
+        </div>
+        <div class="media-step">
+          <span class="media-step-number">三</span>
+          <div><strong>切短片</strong><small id="media-clip-status">等待切片計畫</small></div>
+          <button id="media-cut" class="button primary" type="button" disabled>切短片</button>
+        </div>
+        <p id="media-error" class="semantic-error" hidden></p>
+      </section>
+
+      <div class="media-output-grid">
+        <section class="media-panel">
+          <div class="section-heading compact">
+            <div><span class="eyebrow">時間碼段落</span><h2>逐字稿</h2></div>
+            <button id="media-save-document" class="button secondary" type="button" disabled>存成文件</button>
+          </div>
+          <div id="media-transcript" class="media-transcript empty-state"><p>完成轉寫後顯示每段時間碼與文字。</p></div>
+        </section>
+
+        <section class="media-panel">
+          <div class="section-heading compact">
+            <div><span class="eyebrow">三分數契約</span><h2>精華判斷</h2></div>
+          </div>
+          <div id="media-highlights" class="media-highlights empty-state"><p>完成判斷後顯示有料、搞笑、爭議分數與理由。</p></div>
+        </section>
+      </div>
+
+      <section class="media-panel">
+        <div class="section-heading compact">
+          <div><span class="eyebrow">本機規則</span><h2>切片計畫</h2></div>
+        </div>
+        <div id="media-plans" class="media-plan-grid empty-state"><p>精華判斷完成後，會分別規劃 10、30、60、90 秒剪法。</p></div>
+      </section>
+
+      <section class="media-panel">
+        <div class="section-heading compact">
+          <div><span class="eyebrow">精準重編碼</span><h2>短片成品</h2></div>
+        </div>
+        <div id="media-clips" class="media-clip-grid empty-state"><p>切短片完成後可在此播放或下載。</p></div>
+      </section>
+
+      <details class="media-panel media-provenance">
+        <summary>執行留痕與警示</summary>
+        <pre id="media-provenance-output">尚無執行紀錄。</pre>
+      </details>
+    </section>
+
+    <aside class="panel library-panel" aria-label="文件與卡片庫" aria-hidden="true">
+      <button id="library-close" class="drawer-close" type="button" aria-label="關閉文件與資產抽屜">×</button>
+      <section class="panel-section documents-section">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">卷宗</span>
+            <h2>我的文件</h2>
+          </div>
+          <button id="new-document" class="icon-button" type="button" aria-label="建立新文件">＋</button>
+        </div>
+        <div id="document-list" class="document-list" aria-live="polite"></div>
+      </section>
+
+      <section id="catalog-section" class="panel-section catalog-section">
+        <div class="section-heading compact">
+          <div>
+            <span class="eyebrow">百鬼索引</span>
+            <h2>能力卡庫</h2>
+          </div>
+          <span id="catalog-count" class="count-badge">0</span>
+        </div>
+        <div class="tabs" role="tablist" aria-label="卡片種類">
+          <button class="tab active" role="tab" aria-selected="true" data-kind="style_cards">大師卡</button>
+          <button class="tab" role="tab" aria-selected="false" data-kind="templates">模板</button>
+          <button class="tab" role="tab" aria-selected="false" data-kind="editors">人物卡</button>
+        </div>
+        <label class="search-field" for="catalog-search">
+          <span class="sr-only">搜尋卡片</span>
+          <input id="catalog-search" type="search" placeholder="搜尋名稱、用途或 ID">
+        </label>
+        <div id="training-filter-wrap" class="training-filter-wrap">
+          <label for="training-filter">文本訓練資格</label>
+          <select id="training-filter">
+            <option value="all">全部能力卡</option>
+            <option value="complete_text_20plus">完整文本書目大師卡</option>
+            <option value="other_literary">其他文學大師卡</option>
+          </select>
+          <p id="training-filter-note">完整文本組只收新制 20+ 作者原語細讀完成卡。</p>
+        </div>
+        <div id="catalog-list" class="catalog-list" aria-live="polite"></div>
+      </section>
+    </aside>
+
+    <section class="editor-column" aria-label="文件編輯區">
+      <div class="editor-toolbar">
+        <label class="title-field" for="document-title">
+          <span class="sr-only">文件標題</span>
+          <input id="document-title" type="text" maxlength="180" placeholder="未命名文件">
+        </label>
+        <div class="toolbar-actions">
+          <button id="save-document" class="button secondary" type="button">儲存版本</button>
+          <button id="back-to-edit" class="button secondary" type="button" hidden>返回編輯</button>
+          <button id="rerun-review" class="button primary" type="button" hidden>重新審稿</button>
+        </div>
+      </div>
+
+      <div class="document-meta">
+        <span id="document-stats">0 字・0 段</span>
+        <span id="document-hash" title="目前版本內容雜湊">尚未載入版本</span>
+      </div>
+
+      <div class="paper-wrap">
+        <textarea id="editor" spellcheck="true" aria-label="文件正文" placeholder="在這裡貼入或開始撰寫文件……"></textarea>
+        <article id="article-review" class="article-review" aria-label="批註正文" hidden>
+          <div id="review-title-anchor" class="review-title-anchor" hidden></div>
+          <div id="annotated-article" class="annotated-article"></div>
+        </article>
+      </div>
+
+      <section class="history-drawer collapsed" aria-labelledby="history-title">
+        <div class="section-heading compact">
+          <div>
+            <span class="eyebrow">可追溯紀錄</span>
+            <h2 id="history-title">版本與執行</h2>
+          </div>
+          <div class="history-tabs" role="tablist" aria-label="紀錄類型">
+            <button class="history-tab active" data-history="revisions" role="tab" aria-selected="true">版本</button>
+            <button class="history-tab" data-history="runs" role="tab" aria-selected="false">審稿</button>
+          </div>
+        </div>
+        <div id="history-list" class="history-list"></div>
+      </section>
+    </section>
+
+    <aside class="panel review-panel" aria-label="目前工作階段">
+      <header class="stage-panel-head">
+        <span id="stage-kicker" class="eyebrow">步驟 1</span>
+        <h2 id="stage-title">上稿與來源</h2>
+        <p id="stage-description">貼入內容或上傳稿件，系統會自動整理來源線索。</p>
+      </header>
+      <section id="writer-seat" class="panel-section writer-seat" aria-labelledby="writer-seat-title">
+        <div class="section-heading compact">
+          <div>
+            <span class="eyebrow">新聞模式第一棒</span>
+            <h2 id="writer-seat-title">寫手席</h2>
+          </div>
+          <span id="writer-status" class="writer-status not-started">尚未開始</span>
+        </div>
+        <label for="writer-card-select">寫手卡別</label>
+        <select id="writer-card-select"></select>
+        <p id="writer-recommendation" class="writer-recommendation">預設建議人物訪談筆法。</p>
+        <label for="writer-target-length">目標字數</label>
+        <input id="writer-target-length" type="number" min="200" max="20000" step="100" value="2000" inputmode="numeric">
+        <div class="writer-actions">
+          <button id="start-writer" class="button primary" type="button">開始寫稿</button>
+          <button id="skip-writer" class="button secondary" type="button">跳過寫手、直接審原稿</button>
+        </div>
+        <p id="writer-error" class="writer-error" hidden></p>
+        <div id="writer-report" class="writer-report empty-state" aria-live="polite">
+          <p>完成後會顯示講者判讀、素材缺口與待查證專名。</p>
+        </div>
+      </section>
+      <section id="news-controls" class="panel-section news-controls">
+        <span class="eyebrow">收稿態</span>
+        <h2>上稿與來源</h2>
+        <label class="file-picker" for="article-upload">
+          <span>上傳稿件</span>
+          <small>支援 TXT、MD、DOCX，或直接貼在中央編輯器</small>
+          <input id="article-upload" type="file" accept=".txt,.md,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+        </label>
+        <div class="auto-source-note" aria-live="polite">
+          <strong>來源自動辨識</strong>
+          <span id="source-detection-status">系統會從稿件檔名、內文網址、署名與來源行自動擷取。</span>
+        </div>
+        <div id="structure-preview" class="structure-preview" aria-live="polite">等待稿件以偵測段落結構。</div>
+        <input id="source-notes" type="hidden" value="">
+        <button id="run-review" class="button primary full-width" type="button" disabled>開始編輯審</button>
+        <p class="boundary-note visible-boundary">寫手完成或明確跳過後才可編輯；開始後會依序進入編輯與總編。</p>
+      </section>
+
+      <section id="writing-controls" class="panel-section writing-controls" hidden>
+        <span class="eyebrow">寫作助手</span>
+        <h2>先說你想寫什麼</h2>
+        <label for="writing-concept">概念、用途與希望的感覺</label>
+        <textarea id="writing-concept" rows="6" placeholder="例如：寫一篇談職場假效率的短文，要有台灣口吻，銳利但不要罵人"></textarea>
+        <button id="recommend-styles" class="button primary full-width" type="button">建議大師卡方向</button>
+        <div id="style-recommendations" class="style-recommendations empty-state">
+          <p>輸入概念後，會用白話解釋每張推薦卡的內容取向與不適用情境。</p>
+        </div>
+        <button id="toggle-advanced" class="button secondary full-width" type="button">手動瀏覽全部卡片</button>
+        <button id="run-writing-review" class="button primary full-width" type="button">執行寫作檢查</button>
+      </section>
+
+      <section id="invocation-section" class="panel-section invocation-section" hidden>
+        <span class="eyebrow">本次調用</span>
+        <h2>進階選擇</h2>
+        <label for="style-select">主要大師卡</label>
+        <select id="style-select"></select>
+        <label for="template-select">工作模板</label>
+        <select id="template-select"></select>
+        <label for="persona-select">審稿人物</label>
+        <select id="persona-select"></select>
+        <p class="boundary-note">一般寫作可手動換卡；模板與人物卡預設由系統依任務自動選擇。</p>
+      </section>
+
+      <section id="asset-detail-section" class="panel-section asset-detail-section">
+        <div class="section-heading compact">
+          <div>
+            <span class="eyebrow">卡片快照</span>
+            <h2>選中資產</h2>
+          </div>
+        </div>
+        <div id="asset-detail" class="asset-detail empty-state">
+          <p>從左側選一張卡，查看用途、資格與正本摘要。</p>
+        </div>
+      </section>
+
+      <section id="results-section" class="results-section" hidden>
+        <section id="case-overview" class="case-overview" aria-label="案卷總覽">
+          <div class="overview-heading">
+            <div>
+              <span class="eyebrow">案卷總覽</span>
+              <strong id="overview-stage">初審完成・未核准</strong>
+            </div>
+            <div class="overview-metrics" aria-label="審稿統計">
+              <span id="overview-warning" class="metric-badge warning">0 警告</span>
+              <span id="overview-note" class="metric-badge note">0 提醒</span>
+              <span id="source-readiness" class="metric-badge source">來源待裁</span>
+            </div>
+          </div>
+          <div class="overview-actions">
+            <button id="approve-revision" class="button primary" type="button" disabled>人工核准</button>
+            <button id="build-video-plan" class="button secondary" type="button" hidden>轉成影音企劃</button>
+          </div>
+          <ul id="approval-blockers" class="approval-blockers" aria-live="polite"></ul>
+          <div class="semantic-job-panel" aria-live="polite">
+            <span id="semantic-status" class="semantic-status not-started">語義審尚未開始</span>
+            <p id="semantic-error" class="semantic-error" hidden></p>
+          </div>
+          <details id="video-plan-drawer" class="video-plan-drawer" hidden>
+            <summary>影音企劃草稿 <span id="video-plan-status" class="quality-badge boundary">尚未建立</span></summary>
+            <div id="video-plan-output" class="video-plan-output empty-state">
+              <p>人工核准後即可建立，不會自動派工。</p>
+            </div>
+          </details>
+        </section>
+
+        <div id="news-review-content" class="news-review-content">
+          <details id="editorial-department" class="department-section" open>
+            <summary>
+              <span><span class="department-kicker">新聞編輯卡</span>編輯部</span>
+              <span id="editor-issue-count" class="count-badge">0</span>
+            </summary>
+            <div class="department-body">
+              <div id="editor-function-filters" class="function-filters" aria-label="編輯功能篩選">
+                <button class="function-filter active" type="button" data-function="all">全部</button>
+                <button class="function-filter correctness" type="button" data-function="正確性">正確性</button>
+                <button class="function-filter readability" type="button" data-function="可讀性">可讀性</button>
+                <button class="function-filter prose" type="button" data-function="文筆">文筆</button>
+                <button class="function-filter headline" type="button" data-function="下標">下標</button>
+                <button class="function-filter structure" type="button" data-function="結構">結構</button>
+              </div>
+              <div id="headline-candidates" class="headline-candidates"></div>
+              <div id="rewrite-actions" class="rewrite-actions"></div>
+              <div id="rewrite-preview" class="rewrite-preview" hidden></div>
+              <div id="editor-suggestion-list" class="suggestion-list"></div>
+            </div>
+          </details>
+
+          <details id="chief-department" class="department-section" open>
+            <summary>
+              <span><span class="department-kicker">百鬼總編</span>總編室</span>
+              <span id="chief-issue-count" class="count-badge">0</span>
+            </summary>
+            <div class="department-body">
+              <div id="source-readiness-detail" class="source-readiness-detail" aria-live="polite"></div>
+              <p id="semantic-boundary" class="semantic-boundary">語義審尚未完成；本機預檢不能冒充總編通過。</p>
+              <div id="source-clue-list" class="source-clue-list"></div>
+              <div id="chief-recommendations" class="chief-recommendations"></div>
+              <div id="chief-suggestion-list" class="suggestion-list"></div>
+            </div>
+          </details>
+        </div>
+
+        <div id="writing-review-content" class="panel-section writing-review-content" hidden>
+          <div class="section-heading compact">
+            <div><span class="eyebrow">寫作檢查</span><h2>檢查結果</h2></div>
+            <span id="issue-count" class="count-badge">0</span>
+          </div>
+          <div id="review-summary" class="review-summary empty-state"><p>執行檢查後，問題與統計會出現在這裡。</p></div>
+          <div id="suggestion-list" class="suggestion-list"></div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="diff-dialog" class="diff-dialog">
+    <div class="dialog-head">
+      <div>
+        <span class="eyebrow">版本比較</span>
+        <h2>文字差異</h2>
+      </div>
+      <button id="close-diff" class="icon-button" type="button" aria-label="關閉版本比較">×</button>
+    </div>
+    <pre id="diff-output" tabindex="0"></pre>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

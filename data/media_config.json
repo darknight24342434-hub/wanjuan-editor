@@ -1,0 +1,7 @@
+{
+  "whisper_model": "large-v3-turbo",
+  "device": "auto",
+  "language": "zh",
+  "max_upload_bytes": 3221225472,
+  "_whisper_model_note": "A faster-whisper model id, or an absolute path to a local model snapshot. The id is downloaded on first use."
+}

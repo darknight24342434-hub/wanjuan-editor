@@ -1,0 +1,11 @@
+{
+  "name": "acceptance_fake_engine",
+  "command": [
+    "python",
+    "tests/fixtures/semantic_engine_success.py",
+    "{output_path}"
+  ],
+  "timeout_seconds": 10,
+  "output": "file",
+  "network_disclosure": "驗收假引擎只在本機輸出固定契約，不連網。"
+}

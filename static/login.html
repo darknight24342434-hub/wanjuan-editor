@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0e12">
+  <title>萬卷文庫｜登入</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/login.css">
+</head>
+<body>
+  <main class="login-shell">
+    <form id="login-form" class="login-card" autocomplete="off">
+      <div class="login-brand">
+        <span class="seal" aria-hidden="true">百</span>
+        <div>
+          <h1>萬卷文庫</h1>
+          <p>外部連線需先驗證密碼</p>
+        </div>
+      </div>
+      <label class="login-field" for="password">通行密碼</label>
+      <input id="password" name="password" type="password" inputmode="numeric" required autocomplete="current-password">
+      <button id="submit" class="login-button" type="submit">登入</button>
+      <p id="login-message" class="login-message" role="alert" aria-live="assertive"></p>
+      <p class="login-notice">本服務走 HTTP 明文，僅供區網或 Tailscale 等受信任網路使用。登入有效 12 小時。</p>
+    </form>
+  </main>
+  <script src="/login.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "default_id": "writer.dong_chengyu",
+  "cards": [
+    {
+      "id": "writer.dong_chengyu",
+      "name": "董成瑜人物筆法",
+      "category": "人物訪談（建議）",
+      "path": "06_source_bridge/人物寫作標竿語料.20260704/next_magazine_壹週刊_董成瑜線/董成瑜方法論_併入一鏡到底.md",
+      "engine": "claude_cli",
+      "fallback_engine": "agy_cli"
+    },
+    {
+      "id": "writer.chen_finance",
+      "name": "陳宏銘財經筆法",
+      "category": "財經事件",
+      "path": "01_style_cards/journalists/zh_chen_hongming_finance_news.md",
+      "engine": "agy_cli",
+      "fallback_engine": "claude_cli"
+    },
+    {
+      "id": "writer.chen_car",
+      "name": "陳宏銘車版筆法",
+      "category": "汽車",
+      "path": "01_style_cards/journalists/zh_chen_hongming_car_news.md",
+      "engine": "agy_cli",
+      "fallback_engine": "claude_cli"
+    }
+  ]
+}
