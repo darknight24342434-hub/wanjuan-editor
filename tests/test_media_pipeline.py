@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -228,7 +229,7 @@ class ClipPlannerTests(unittest.TestCase):
 
 class FfmpegCutIntegrationTests(unittest.TestCase):
     def test_real_ffmpeg_cut_from_synthesized_five_second_clip(self) -> None:
-        ffmpeg = shutil.which("ffmpeg") or str(Path(r"C:\Python314\Scripts\ffmpeg.exe"))
+        ffmpeg = shutil.which("ffmpeg") or str(Path(os.environ.get("FFMPEG_DIR", "")) / "ffmpeg.exe")
         if not Path(ffmpeg).is_file():
             self.skipTest("本機找不到 ffmpeg")
         with tempfile.TemporaryDirectory() as temporary:
@@ -322,8 +323,8 @@ class FfmpegCutIntegrationTests(unittest.TestCase):
                 self.assertEqual(clip["provenance"]["audio_codec"], "aac")
 
     def test_ffmpeg_failure_keeps_highlights_and_does_not_publish_clips(self) -> None:
-        ffmpeg = shutil.which("ffmpeg") or str(Path(r"C:\Python314\Scripts\ffmpeg.exe"))
-        ffprobe = str(Path(r"S:\AI_Generation\tools\MiniMaxHub\resources\ffmpeg\ffprobe.exe"))
+        ffmpeg = shutil.which("ffmpeg") or str(Path(os.environ.get("FFMPEG_DIR", "")) / "ffmpeg.exe")
+        ffprobe = shutil.which("ffprobe") or str(Path(os.environ.get("FFMPEG_DIR", "")) / "ffprobe.exe")
         if not Path(ffmpeg).is_file() or not Path(ffprobe).is_file():
             self.skipTest("本機缺少 ffmpeg 或 ffprobe")
         with tempfile.TemporaryDirectory() as temporary:
